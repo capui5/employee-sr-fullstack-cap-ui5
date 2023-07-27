@@ -1,0 +1,115 @@
+_schema-version: "3.1"
+ID: Employee
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: Employee-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: Employee-db
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+  build-parameters:
+    builder: npm-ci
+- name: Employee-db-deployer
+  type: hdb
+  path: db
+  requires:
+  - name: Employee-db
+  parameters:
+    buildpack: nodejs_buildpack
+- name: Employee-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: Employee-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - empreg.zip
+      name: empreg
+      target-path: resources/
+- name: empreg
+  type: html5
+  path: app/empreg
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+- name: Employee-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: Employee-destination-service
+    parameters:
+      content-target: true
+  - name: Employee-repo-host
+    parameters:
+      service-key:
+        name: Employee-repo-host-key
+  - name: uaa_Employee
+    parameters:
+      service-key:
+        name: uaa_Employee-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: empreg_Employee_repo_host
+          ServiceInstanceName: Employee-html5-srv
+          ServiceKeyName: Employee-repo-host-key
+          sap.cloud.service: empreg
+        - Authentication: OAuth2UserTokenExchange
+          Name: empreg_uaa_Employee
+          ServiceInstanceName: Employee-xsuaa-service
+          ServiceKeyName: uaa_Employee-key
+          sap.cloud.service: empreg
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+resources:
+- name: Employee-db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+- name: Employee-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: Employee-html5-srv
+    service-plan: app-host
+- name: Employee-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      version: 1.0.0
+    service: destination
+    service-name: Employee-destination-service
+    service-plan: lite
+- name: uaa_Employee
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: Employee-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npx -p @sap/cds-dk cds build --production

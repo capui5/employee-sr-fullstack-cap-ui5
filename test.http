@@ -1,0 +1,26 @@
+###
+GET http://localhost:4004/CatalogService/Employees?
+
+###
+POST http://localhost:4004/CatalogService/Employees?
+Content-Type: application/json
+
+
+ {
+       "ID": 6,
+      "fname": "Saurabh",
+      "lname": "P",
+      "desig": "Dev",
+      "email": "saurabh@aarini.com",
+      "skills": "SAPUI5",
+      "country": "Netherlands",
+      "State": "Netherlands",
+      "city": "Netherlands",
+      "doj": "2020-04-06",
+      "yoe": 7,
+      "gender": "MALE",
+      "department_ID": 2,
+      "projects_ID": 1
+
+      
+    }
